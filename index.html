@@ -13,18 +13,19 @@
         #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .fc-event { cursor: pointer; border: none !important; padding: 4px 6px; font-size: 0.82em; border-radius: 6px; }
         
+        /* 모달 공통 스타일 */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 15% auto; padding: 24px; border-radius: 20px; width: 92%; max-width: 400px; animation: modal-in 0.2s ease-out; }
-        @keyframes modal-in { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; animation: modal-in 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+        @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
         .admin-only { display: none; }
         body.admin-mode .admin-only { display: block; }
-
-        .admin-hint { display: none; text-align: center; font-size: 0.8rem; color: #64748b; margin-bottom: 10px; }
+        .admin-hint { display: none; text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 10px; }
         body.admin-mode .admin-hint { display: block; }
         
-        /* 모바일에서 꾹 누를 때 텍스트 선택 방지 */
-        .fc-daygrid-day { -webkit-user-select: none; user-select: none; }
+        /* 일정 리스트 스타일 */
+        .event-item { transition: all 0.2s; border-left: 4px solid #3b82f6; }
+        body.admin-mode .event-item:hover { background-color: #fef2f2; border-left-color: #ef4444; cursor: pointer; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -35,13 +36,13 @@
     </nav>
 
     <div class="mt-6 px-4">
-        <p class="admin-hint font-medium">💡 날짜를 **우클릭(모바일은 꾹 누르기)** 하여 새 일정을 등록하세요.</p>
+        <p class="admin-hint font-medium">💡 등록: 우클릭/홀드 | 상세확인: 클릭/터치</p>
         <div id="calendar"></div>
     </div>
 
     <div id="authModal" class="modal">
         <div class="modal-content text-center">
-            <h2 class="text-xl font-bold mb-4 text-slate-900">관리자 로그인</h2>
+            <h2 class="text-xl font-bold mb-4">관리자 로그인</h2>
             <input type="password" id="serialInput" placeholder="인증번호 입력" class="w-full p-3 rounded-xl border border-slate-200 mb-4 text-center focus:ring-2 focus:ring-blue-500 outline-none">
             <div class="flex gap-2">
                 <button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">닫기</button>
@@ -50,37 +51,38 @@
         </div>
     </div>
 
-    <div id="addModal" class="modal">
+    <div id="viewModal" class="modal">
         <div class="modal-content">
-            <h2 class="text-lg font-bold mb-4 text-slate-900">새 일정 만들기</h2>
-            <div class="space-y-3">
-                <input type="text" id="eventTitle" placeholder="일정 내용" class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500">
-                <div class="grid grid-cols-2 gap-2">
-                    <select id="eventType" onchange="toggleTimeInput()" class="p-3 rounded-xl border border-slate-200 outline-none bg-white">
-                        <option value="1">🔵 일반 행사</option>
-                        <option value="2">🔴 마감 기한</option>
-                    </select>
-                    <input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200 outline-none">
+            <button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 text-2xl font-bold">✕</button>
+            <h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1 tracking-tight">2024-00-00</h2>
+            <h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">오늘의 일정</h3>
+            
+            <div id="eventList" class="space-y-3 max-height-[400px] overflow-y-auto pr-1">
                 </div>
-                <div id="timeInputGroup" style="display:none;">
-                    <label class="text-xs font-bold text-slate-400 ml-1">마감 시간</label>
-                    <input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200 outline-none">
-                </div>
-            </div>
-            <div class="mt-6 flex gap-2">
-                <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button>
-                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg">일정 저장</button>
-            </div>
+            
+            <p id="adminDeleteGuide" class="admin-only mt-6 text-xs text-red-500 font-bold text-center italic">※ 관리자 모드: 일정을 클릭하면 삭제됩니다.</p>
         </div>
     </div>
 
-    <div id="deleteModal" class="modal">
-        <div class="modal-content text-center">
-            <h2 class="text-lg font-bold mb-2 text-red-600">일정 삭제</h2>
-            <p id="deleteTargetName" class="text-slate-500 text-sm mb-6 px-4 font-medium"></p>
-            <div class="flex gap-2">
-                <button onclick="closeModal('deleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button>
-                <button id="confirmDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700">삭제하기</button>
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold text-slate-900 mb-5 tracking-tight">새 일정 만들기</h2>
+            <div class="space-y-4">
+                <input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="eventType" onchange="toggleTimeInput()" class="p-3 rounded-xl border border-slate-200 bg-white">
+                        <option value="1">🔵 일반 행사</option>
+                        <option value="2">🔴 마감 기한</option>
+                    </select>
+                    <input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200">
+                </div>
+                <div id="timeInputGroup" style="display:none;">
+                    <input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200">
+                </div>
+            </div>
+            <div class="mt-8 flex gap-2">
+                <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button>
+                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg">저장</button>
             </div>
         </div>
     </div>
@@ -104,6 +106,7 @@
         const eventCol = collection(db, "events");
 
         const MASTER_SERIAL = "1234";
+        let allEvents = [];
 
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
@@ -118,7 +121,16 @@
                 document.getElementById('authBtn').innerText = "관리자 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
-            } else { alert("인증번호가 틀렸습니다."); }
+            } else { alert("인증번호 오류!"); }
+        };
+
+        // 상세 보기 창에서 일정 삭제
+        window.deleteEvent = async (id, title) => {
+            if(!document.body.classList.contains('admin-mode')) return;
+            if(confirm(`"${title}" 일정을 정말 삭제할까요?`)) {
+                await deleteDoc(doc(db, "events", id));
+                closeModal('viewModal');
+            }
         };
 
         window.handleAddEvent = async () => {
@@ -127,16 +139,20 @@
             const date = document.getElementById('eventDate').value;
             const time = document.getElementById('eventTime').value;
 
-            if(!title || !date) return alert("필수 정보를 입력하세요.");
+            if(!title || !date) return alert("정보를 모두 입력하세요.");
 
-            let eventData = { title, start: date, allDay: true, backgroundColor: '#3b82f6', borderColor: 'transparent' };
+            let eventData = { 
+                rawTitle: title, // 원본 이름 저장
+                title: type === "2" && time ? `${title} ~${time}` : title,
+                start: date, 
+                allDay: type !== "2",
+                type: type,
+                time: time || "",
+                backgroundColor: type === "2" ? "#ef4444" : "#3b82f6",
+                borderColor: 'transparent'
+            };
 
-            if(type === "2" && time) {
-                eventData.title = `${title} ~${time}`;
-                eventData.allDay = false;
-                eventData.start = `${date}T${time}:00`;
-                eventData.backgroundColor = '#ef4444';
-            }
+            if(type === "2" && time) eventData.start = `${date}T${time}:00`;
 
             await addDoc(eventCol, eventData);
             closeModal('addModal');
@@ -152,55 +168,59 @@
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 dayMaxEvents: true,
                 
-                // 모바일 꾹 누르기(Long Press) 설정
-                selectLongPressDelay: 600, 
-                contentHeight: 'auto',
+                // [날짜 클릭 시 - 상세 보기 창 오픈]
+                dateClick: (info) => {
+                    const dateStr = info.dateStr;
+                    document.getElementById('viewDateTitle').innerText = dateStr;
+                    
+                    const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
+                    const listEl = document.getElementById('eventList');
+                    listEl.innerHTML = dayEvents.length ? "" : "<p class='text-slate-400 py-10 text-center font-medium'>등록된 일정이 없습니다.</p>";
 
-                // 툴팁 관련 로직 전체 삭제됨 (Tippy 호출부 제거)
+                    dayEvents.forEach(ev => {
+                        const item = document.createElement('div');
+                        item.className = "event-item p-4 bg-slate-50 rounded-xl mb-2";
+                        // [이름 - 시간 - 태그] 순서
+                        const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
+                        const displayTime = ev.time ? `(${ev.time})` : "(종일)";
+                        
+                        item.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-bold text-slate-800">${ev.rawTitle || ev.title.split(' ~')[0]}</span>
+                                <span class="text-xs font-black px-2 py-1 bg-white rounded-md shadow-sm border border-slate-100">${tag}</span>
+                            </div>
+                            <div class="text-sm text-slate-500 mt-1 font-semibold italic">${displayTime}</div>
+                        `;
+                        item.onclick = () => deleteEvent(ev.id, ev.title);
+                        listEl.appendChild(item);
+                    });
+                    openModal('viewModal');
+                },
 
+                // 일정 클릭 시에도 날짜 클릭과 동일하게 상세 보기 오픈
                 eventClick: (info) => {
-                    if(document.body.classList.contains('admin-mode')) {
-                        document.getElementById('deleteTargetName').innerText = info.event.title;
-                        document.getElementById('confirmDeleteBtn').onclick = async () => {
-                            await deleteDoc(doc(db, "events", info.event.id));
-                            closeModal('deleteModal');
-                        };
-                        openModal('deleteModal');
-                    }
+                    info.jsEvent.preventDefault();
+                    calendar.trigger('dateClick', { dateStr: info.event.startStr.split('T')[0] });
                 }
             });
 
             calendar.render();
 
-            // 우클릭(PC) 및 모바일 꾹 누르기 감지 로직
-            const handleContextMenu = (e) => {
+            // 관리자 우클릭 등록 감지
+            calendarEl.addEventListener('contextmenu', (e) => {
                 if(!document.body.classList.contains('admin-mode')) return;
-                
-                e.preventDefault(); 
+                e.preventDefault();
                 const dayEl = e.target.closest('.fc-daygrid-day');
                 if (dayEl) {
-                    const date = dayEl.getAttribute('data-date');
-                    document.getElementById('eventDate').value = date;
+                    document.getElementById('eventDate').value = dayEl.getAttribute('data-date');
                     openModal('addModal');
                 }
-            };
-
-            calendarEl.addEventListener('contextmenu', handleContextMenu);
-            
-            // 모바일 꾹 누르기를 위한 터치 이벤트 보완 (일부 브라우저 대응)
-            let touchTimer;
-            calendarEl.addEventListener('touchstart', (e) => {
-                if(!document.body.classList.contains('admin-mode')) return;
-                touchTimer = setTimeout(() => handleContextMenu(e), 600);
-            }, { passive: false });
-
-            calendarEl.addEventListener('touchend', () => clearTimeout(touchTimer));
-            calendarEl.addEventListener('touchmove', () => clearTimeout(touchTimer));
+            });
 
             onSnapshot(eventCol, (snapshot) => {
-                const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calendar.removeAllEvents();
-                calendar.addEventSource(events);
+                calendar.addEventSource(allEvents);
             });
         });
     </script>
