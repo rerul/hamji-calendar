@@ -148,7 +148,7 @@
             const content = document.getElementById('authContent');
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
-                document.getElementById('authBtn').innerText = "관리 모드 ✅";
+                document.getElementById('authBtn').innerText = "관리자 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
             } else {
@@ -187,6 +187,7 @@
                 backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", 
                 borderColor: 'transparent' 
             };
+            
             if(type === "2" && time) eventData.start = `${date}T${time}:00`;
             
             try {
@@ -238,7 +239,7 @@
             });
             calendar.render();
 
-            // 우클릭/홀드 등록 핸들러
+            // 기존 우클릭 로직 유지
             calendarEl.addEventListener('contextmenu', (e) => {
                 if(!document.body.classList.contains('admin-mode')) return;
                 e.preventDefault();
