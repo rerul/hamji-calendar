@@ -114,7 +114,7 @@
         const db = getFirestore(app);
         const eventCol = collection(db, "events");
 
-        const MASTER_SERIAL = "1234";
+        const MASTER_SERIAL = "0307";
         let allEvents = [];
 
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
@@ -128,7 +128,7 @@
             const input = document.getElementById('serialInput');
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
-                document.getElementById('authBtn').innerText = "관리 모드 ✅";
+                document.getElementById('authBtn').innerText = "관리자 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
             } else { alert("인증번호가 틀렸습니다."); input.value = ""; }
