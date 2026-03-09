@@ -9,57 +9,67 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        #calendar { max-width: 950px; margin: 10px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .fc-event { cursor: pointer; border: none !important; padding: 4px 6px; font-size: 0.82em; border-radius: 6px; }
         
-        /* 기본 이벤트 스타일 */
-        .fc-event { cursor: pointer; border: none !important; padding: 2px 4px; font-size: 0.85em; border-radius: 4px; }
-        .fc-toolbar-title { font-size: 1.4rem !important; font-weight: 800; color: #1e293b; }
-
-        /* 모바일 최적화 미디어 쿼리 */
-        @media (max-width: 768px) {
-            .fc-toolbar-title { font-size: 1.05rem !important; } 
-            .fc-button { padding: 4px 6px !important; font-size: 0.7rem !important; }
-            .fc-toolbar { flex-direction: column; gap: 8px; margin-bottom: 1em !important; }
-            .fc-daygrid-day-number { font-size: 0.75rem !important; }
-            .fc-event-title { font-size: 0.7rem !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-            .fc-col-header-cell-cushion { font-size: 0.75rem !important; }
-        }
-
-        /* 모달 스타일 */
+        /* 모달 공통 */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
-        .modal-content { background: white; margin: 15% auto; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; position: relative; }
+        .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; animation: modal-in 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+        @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
-        .mode-hint { text-align: center; font-size: 0.8rem; padding: 8px; border-radius: 8px; margin: 10px auto; max-width: 950px; }
-        .normal-hint { background-color: #f1f5f9; color: #64748b; }
+        /* 안내 문구 */
+        .mode-hint { text-align: center; font-size: 0.85rem; padding: 8px; border-radius: 8px; margin: 10px auto; max-width: 950px; }
+        .normal-hint { background-color: #f1f5f9; color: #64748b; display: block; }
         .admin-hint { background-color: #fef2f2; color: #ef4444; display: none; font-weight: bold; border: 1px dashed #fecaca; }
         body.admin-mode .normal-hint { display: none; }
         body.admin-mode .admin-hint { display: block; }
-        
-        .event-item { transition: background 0.2s; border-left: 4px solid #3b82f6; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
-        .shake { animation: shake 0.2s ease-in-out 2; }
+
+        .event-item { transition: all 0.2s; border-left: 4px solid #3b82f6; cursor: pointer; }
+        body.admin-mode .event-item:hover { background-color: #fef2f2; border-left-color: #ef4444; }
+
+        /* 흔들림 애니메이션 (오류 시) */
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .shake { animation: shake 0.2s ease-in-out 0s 2; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <nav class="bg-white border-b border-slate-200 p-3 flex justify-between items-center px-4 md:px-12 sticky top-0 z-50">
-        <h1 class="text-lg md:text-xl font-extrabold text-blue-600">📅 함지 3-7</h1>
-        <button id="authBtn" onclick="openModal('authModal')" class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold">관리자 인증</button>
+    <nav class="bg-white border-b border-slate-200 p-4 flex justify-between items-center px-6 md:px-12 sticky top-0 z-50">
+        <h1 class="text-xl font-extrabold text-blue-600">📅 함지 3-7 일정</h1>
+        <button id="authBtn" onclick="openModal('authModal')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-all">관리자 인증</button>
     </nav>
 
-    <div class="px-4 mt-2">
-        <div class="mode-hint normal-hint">💡 날짜/일정 <strong>클릭</strong> 시 상세 확인</div>
-        <div class="mode-hint admin-hint">🛠️ 등록: <strong>우클릭/홀드</strong> | 삭제: <strong>상세창 클릭</strong></div>
+    <div class="px-4 mt-4">
+        <div class="mode-hint normal-hint">💡 날짜나 일정을 <strong>클릭(터치)</strong>하여 상세 내용을 확인하세요.</div>
+        <div class="mode-hint admin-hint">🛠️ 등록: <strong>우클릭/홀드</strong> | 삭제: <strong>상세창에서 일정 클릭</strong></div>
     </div>
 
     <div id="calendar"></div>
 
-    <div id="authModal" class="modal"><div id="authContent" class="modal-content text-center"><h2 class="text-xl font-bold mb-4">관리자 로그인</h2><input type="password" id="serialInput" placeholder="인증번호" class="w-full p-3 border rounded-xl mb-4 text-center outline-none"><div class="flex gap-2"><button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">닫기</button><button onclick="handleAuth()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold">확인</button></div></div></div>
-    <div id="errorModal" class="modal" style="z-index: 10001;"><div class="modal-content text-center border-t-8 border-orange-400"><h2 class="text-xl font-bold mb-2">인증번호 오류</h2><p class="mb-6 text-slate-500">다시 확인해 주세요.</p><button onclick="closeModal('errorModal')" class="w-full bg-slate-900 text-white p-3 rounded-xl font-bold">닫기</button></div></div>
-    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 text-2xl">✕</button><h2 id="viewDateTitle" class="text-sm text-slate-400 mb-1">날짜</h2><h3 class="text-xl font-bold mb-4">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[350px] overflow-y-auto"></div></div></div>
-    <div id="addModal" class="modal"><div class="modal-content"><h2 class="text-xl font-bold mb-4">새 일정 만들기</h2><div class="space-y-3"><input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 border rounded-xl outline-none"><div class="grid grid-cols-2 gap-2"><select id="eventType" onchange="toggleTimeInput()" class="p-3 border rounded-xl bg-white"><option value="1">🔵 행사</option><option value="2">🔴 마감</option></select><input type="date" id="eventDate" class="p-3 border rounded-xl"></div><div id="timeInputGroup" style="display:none;"><input type="time" id="eventTime" class="w-full p-3 border rounded-xl"></div></div><div class="mt-6 flex gap-2"><button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button><button onclick="handleAddEvent()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold">저장</button></div></div></div>
-    <div id="confirmDeleteModal" class="modal" style="z-index: 10000;"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">삭제할까요?</h2><p id="deleteTargetTitle" class="text-sm text-slate-500 mb-6"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
+    <div id="authModal" class="modal">
+        <div id="authContent" class="modal-content text-center">
+            <h2 class="text-xl font-bold mb-4 text-slate-900">관리자 로그인</h2>
+            <input type="password" id="serialInput" placeholder="인증번호 입력" class="w-full p-4 rounded-2xl border border-slate-200 mb-4 text-center text-xl tracking-widest focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+            <div class="flex gap-2">
+                <button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold text-slate-500">닫기</button>
+                <button onclick="handleAuth()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-bold">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="errorModal" class="modal" style="z-index: 10001;">
+        <div class="modal-content text-center border-t-8 border-orange-400">
+            <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-3xl">?</div>
+            <h2 class="text-xl font-bold mb-2 text-slate-900">인증번호 오류</h2>
+            <p class="text-slate-500 text-sm mb-8 px-4 font-medium">입력하신 번호가 일치하지 않습니다.<br>다시 확인해 주세요.</p>
+            <button onclick="closeModal('errorModal')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold">다시 시도</button>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1 tracking-tight">날짜</h2><h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div></div></div>
+    <div id="addModal" class="modal"><div class="modal-content"><h2 class="text-xl font-bold text-slate-900 mb-5 tracking-tight">새 일정 만들기</h2><div class="space-y-4"><input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500"><div class="grid grid-cols-2 gap-2"><select id="eventType" onchange="toggleTimeInput()" class="p-3 rounded-xl border border-slate-200 bg-white"><option value="1">🔵 일반 행사</option><option value="2">🔴 마감 기한</option></select><input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200"></div><div id="timeInputGroup" style="display:none;"><input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200"></div></div><div class="mt-8 flex gap-2"><button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button><button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100">일정 저장</button></div></div></div>
+    <div id="confirmDeleteModal" class="modal" style="z-index: 10000;"><div class="modal-content text-center border-t-8 border-red-500"><div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div><h2 class="text-xl font-bold mb-2 text-slate-900">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 font-medium break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700 transition-colors">삭제</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -83,100 +93,6 @@
         let allEvents = [];
 
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
-        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
-        window.toggleTimeInput = () => {
-            const type = document.getElementById('eventType').value;
-            document.getElementById('timeInputGroup').style.display = type === "2" ? "block" : "none";
-        };
-
-        window.handleAuth = () => {
-            const input = document.getElementById('serialInput');
-            if(input.value === MASTER_SERIAL) {
-                document.body.classList.add('admin-mode');
-                document.getElementById('authBtn').innerText = "관리 모드 ✅";
-                closeModal('authModal');
-            } else {
-                document.getElementById('authContent').classList.add('shake');
-                setTimeout(() => document.getElementById('authContent').classList.remove('shake'), 400);
-                openModal('errorModal');
-            }
-        };
-
-        window.requestDelete = (id, title) => {
-            if(!document.body.classList.contains('admin-mode')) return;
-            document.getElementById('deleteTargetTitle').innerText = title;
-            document.getElementById('finalDeleteBtn').onclick = async () => {
-                await deleteDoc(doc(db, "events", id));
-                closeModal('confirmDeleteModal');
-                closeModal('viewModal');
-            };
-            openModal('confirmDeleteModal');
-        };
-
-        window.handleAddEvent = async () => {
-            const title = document.getElementById('eventTitle').value;
-            const type = document.getElementById('eventType').value;
-            const date = document.getElementById('eventDate').value;
-            const time = document.getElementById('eventTime').value;
-            if(!title || !date) return;
-            let eventData = { rawTitle: title, title: type === "2" && time ? `${title} ~${time}` : title, start: date, allDay: type !== "2", type, time: time || "", backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", borderColor: 'transparent' };
-            if(type === "2" && time) eventData.start = `${date}T${time}:00`;
-            await addDoc(eventCol, eventData);
-            closeModal('addModal');
-        };
-
-        let calendar;
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'ko',
-                headerToolbar: { 
-                    left: 'prev,next today', 
-                    center: 'title', 
-                    right: 'dayGridMonth,listMonth' // month 버튼 복구
-                },
-                dayMaxEvents: 2,
-                views: { listMonth: { validRange: { start: todayStr } } },
-                dateClick: (info) => {
-                    document.getElementById('viewDateTitle').innerText = info.dateStr;
-                    const dayEvents = allEvents.filter(e => e.start.startsWith(info.dateStr));
-                    const listEl = document.getElementById('eventList');
-                    listEl.innerHTML = dayEvents.length ? "" : "<p class='text-center py-10'>일정이 없습니다.</p>";
-                    dayEvents.forEach(ev => {
-                        const item = document.createElement('div');
-                        item.className = "p-4 bg-slate-50 rounded-xl mb-2 hover:bg-slate-100 cursor-pointer border-l-4 border-blue-500";
-                        item.innerHTML = `<div class="flex justify-between"><div><h4 class="font-bold">${ev.rawTitle || ev.title}</h4><p class="text-xs text-slate-400">${ev.time || "종일"}</p></div><span class="text-[10px] bg-white px-2 py-1 rounded shadow-sm border h-fit">${ev.type === "2" ? "🔴 마감" : "🔵 행사"}</span></div>`;
-                        item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
-                        listEl.appendChild(item);
-                    });
-                    openModal('viewModal');
-                },
-                eventClick: (info) => {
-                    info.jsEvent.preventDefault();
-                    calendar.trigger('dateClick', { dateStr: info.event.startStr.split('T')[0] });
-                }
-            });
-            calendar.render();
-
-            calendarEl.addEventListener('contextmenu', (e) => {
-                if(!document.body.classList.contains('admin-mode')) return;
-                e.preventDefault();
-                const dayEl = e.target.closest('.fc-daygrid-day');
-                if (dayEl) { document.getElementById('eventDate').value = dayEl.getAttribute('data-date'); openModal('addModal'); }
-            });
-
-            onSnapshot(eventCol, (snapshot) => {
-                allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                calendar.removeAllEvents();
-                calendar.addEventSource(allEvents);
-            });
-        });
-    </script>
-</body>
-</html>
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
         window.toggleTimeInput = () => {
             const type = document.getElementById('eventType').value;
