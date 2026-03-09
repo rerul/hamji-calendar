@@ -12,41 +12,25 @@
         body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
         #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        /* 일정 스타일 */
         .fc-event { cursor: pointer; border: none !important; padding: 4px 6px; font-size: 0.82em; border-radius: 6px; }
         
-        /* 안내 문구 영역 안정화 (레이아웃 튀는 현상 방지) */
+        /* 툴팁 영역 레이아웃 안정화 */
         .mode-hint-container { min-height: 52px; display: flex; align-items: center; justify-content: center; }
         .mode-hint { text-align: center; font-size: 0.85rem; padding: 10px; border-radius: 8px; width: 100%; max-width: 950px; }
         .normal-hint { background-color: #f1f5f9; color: #64748b; display: block; }
         .admin-hint { background-color: #fef2f2; color: #ef4444; display: none; font-weight: bold; border: 1px dashed #fecaca; }
         
-        /* 관리자 모드 활성화 시 가시성 제어 */
         body.admin-mode .normal-hint { display: none; }
         body.admin-mode .admin-hint { display: block; }
 
-        /* [신규] 관리자 전용 플로팅 추가 버튼 (FAB) */
-        #mobileAddBtn { 
-            display: none; position: fixed; bottom: 30px; right: 25px; 
-            width: 64px; height: 64px; background: #3b82f6; color: white; 
-            border-radius: 50%; justify-content: center; align-items: center; 
-            font-size: 32px; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5); 
-            z-index: 9999; border: none; cursor: pointer; transition: transform 0.2s;
-            -webkit-tap-highlight-color: rgba(0,0,0,0);
-        }
-        body.admin-mode #mobileAddBtn { display: flex; }
-        #mobileAddBtn:active { transform: scale(0.9); background: #2563eb; }
-
-        /* 모달 공통 스타일 */
+        /* 상세창 UI 유지 (모바일에서도 큼직하게) */
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; position: relative; animation: modal-in 0.25s ease-out; }
         @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* 모바일 캘린더 텍스트 조절 */
         @media (max-width: 768px) {
             .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800; }
             .fc-button { padding: 4px 8px !important; font-size: 0.75rem !important; }
-            .fc-daygrid-day-number { font-size: 0.85rem !important; }
         }
 
         .event-item { transition: all 0.2s; border-left: 4px solid #3b82f6; cursor: pointer; }
@@ -63,15 +47,11 @@
     </nav>
 
     <div class="px-4 mt-4 mode-hint-container">
-        <div class="mode-hint normal-hint">💡 날짜나 일정을 <strong>터치</strong>하여 상세 내용을 확인하세요.</div>
-        <div class="mode-hint admin-hint">
-            🛠️ 등록: <span class="hidden md:inline">날짜 <strong>우클릭</strong> 또는</span> 하단 <strong>[+] 버튼</strong> 터치
-        </div>
+        <div class="mode-hint normal-hint">💡 날짜나 일정을 <strong>클릭(터치)</strong>하여 상세 내용을 확인하세요.</div>
+        <div class="mode-hint admin-hint">🛠️ 등록: <strong>우클릭/홀드</strong> | 삭제: <strong>상세창에서 일정 클릭</strong></div>
     </div>
 
     <div id="calendar"></div>
-
-    <button id="mobileAddBtn" onclick="openAddModalWithToday()">+</button>
 
     <div id="authModal" class="modal">
         <div id="authContent" class="modal-content text-center">
@@ -105,34 +85,21 @@
                     </select>
                     <input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200">
                 </div>
-                <div id="timeInputGroup" style="display:none;">
-                    <input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200">
-                </div>
+                <div id="timeInputGroup" style="display:none;"><input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200"></div>
             </div>
             <div class="mt-8 flex gap-2">
                 <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button>
-                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100">일정 저장</button>
+                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold">일정 저장</button>
             </div>
         </div>
     </div>
 
-    <div id="confirmDeleteModal" class="modal" style="z-index: 11000;">
-        <div class="modal-content text-center border-t-8 border-red-500">
-            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-2xl">!</div>
-            <h2 class="text-xl font-bold mb-2 text-slate-900">일정을 삭제할까요?</h2>
-            <p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 font-medium break-all"></p>
-            <div class="flex gap-2">
-                <button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button>
-                <button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700 transition-colors">삭제</button>
-            </div>
-        </div>
-    </div>
+    <div id="confirmDeleteModal" class="modal" style="z-index: 11000;"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyDuB5fDjAqs0vyKDj8qnKgRYe5Er9-Fogc",
             authDomain: "hamji-calendar.firebaseapp.com",
@@ -150,38 +117,21 @@
         const MASTER_SERIAL = "1234";
         let allEvents = [];
 
-        // 전역 함수 정의
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
         window.closeModal = (id) => document.getElementById(id).style.display = 'none';
-        
         window.toggleTimeInput = () => {
             const type = document.getElementById('eventType').value;
             document.getElementById('timeInputGroup').style.display = type === "2" ? "block" : "none";
         };
 
-        // 오늘 날짜로 등록 모달 열기
-        window.openAddModalWithToday = () => {
-            const now = new Date();
-            const offset = now.getTimezoneOffset() * 60000;
-            const localISOTime = new Date(now - offset).toISOString().split('T')[0];
-            document.getElementById('eventDate').value = localISOTime;
-            openModal('addModal');
-        };
-
         window.handleAuth = () => {
             const input = document.getElementById('serialInput');
-            const content = document.getElementById('authContent');
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
                 document.getElementById('authBtn').innerText = "관리 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
-            } else {
-                content.classList.add('shake');
-                setTimeout(() => content.classList.remove('shake'), 400);
-                input.value = "";
-                alert("인증번호가 일치하지 않습니다.");
-            }
+            } else { alert("인증번호가 틀렸습니다."); input.value = ""; }
         };
 
         window.requestDelete = (id, title) => {
@@ -201,31 +151,14 @@
             const date = document.getElementById('eventDate').value;
             const time = document.getElementById('eventTime').value;
             if(!title || !date) return;
-            
-            let eventData = { 
-                rawTitle: title, 
-                title: type === "2" && time ? `${title} ~${time}` : title, 
-                start: date, 
-                allDay: type !== "2", 
-                type, 
-                time: time || "", 
-                backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", 
-                borderColor: 'transparent' 
-            };
-            
+            let eventData = { rawTitle: title, title: type === "2" && time ? `${title} ~${time}` : title, start: date, allDay: type !== "2", type, time: time || "", backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", borderColor: 'transparent' };
             if(type === "2" && time) eventData.start = `${date}T${time}:00`;
-            
-            try {
-                await addDoc(eventCol, eventData);
-                closeModal('addModal');
-                document.getElementById('eventTitle').value = "";
-            } catch (e) { console.error("Error adding document: ", e); }
+            await addDoc(eventCol, eventData);
+            closeModal('addModal');
+            document.getElementById('eventTitle').value = "";
         };
 
-        // FullCalendar 초기화
         let calendar;
-        const todayStr = new Date().toISOString().split('T')[0];
-
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
@@ -233,26 +166,16 @@
                 locale: 'ko',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 dayMaxEvents: true,
-                views: { listMonth: { validRange: { start: todayStr } } },
                 dateClick: (info) => {
                     const dateStr = info.dateStr;
                     document.getElementById('viewDateTitle').innerText = dateStr;
                     const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
                     const listEl = document.getElementById('eventList');
                     listEl.innerHTML = dayEvents.length ? "" : "<p class='text-slate-400 py-10 text-center font-medium'>일정이 없습니다.</p>";
-                    
                     dayEvents.forEach(ev => {
                         const item = document.createElement('div');
                         item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2 hover:shadow-md transition-all";
-                        const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
-                        item.innerHTML = `
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1 pr-2">
-                                    <h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title.split(' ~')[0]}</h4>
-                                    <p class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">${ev.time || "종일"}</p>
-                                </div>
-                                <span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span>
-                            </div>`;
+                        item.innerHTML = `<h4 class="text-lg font-bold text-slate-800">${ev.rawTitle || ev.title}</h4><p class="text-xs text-slate-400 mt-1">${ev.time || "종일"}</p>`;
                         item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
                         listEl.appendChild(item);
                     });
@@ -265,7 +188,7 @@
             });
             calendar.render();
 
-            // PC 전용 우클릭 등록 기능
+            // 순정 우클릭 핸들러 (모바일 홀드 인식 포함)
             calendarEl.addEventListener('contextmenu', (e) => {
                 if(!document.body.classList.contains('admin-mode')) return;
                 e.preventDefault();
@@ -276,7 +199,6 @@
                 }
             });
 
-            // Firebase 리얼타임 업데이트
             onSnapshot(eventCol, (snapshot) => {
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calendar.removeAllEvents();
