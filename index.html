@@ -13,6 +13,24 @@
         #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .fc-event { cursor: pointer; border: none !important; padding: 4px 6px; font-size: 0.82em; border-radius: 6px; }
         
+        /* [모바일 전용 최적화 CSS] */
+        @media (max-width: 768px) {
+            /* 1. 상단 제목 및 버튼 크기 축소 */
+            .fc-toolbar-title { font-size: 1.1rem !important; font-weight: 800; }
+            .fc-button { padding: 4px 8px !important; font-size: 0.75rem !important; }
+            .fc-toolbar { margin-bottom: 1em !important; gap: 4px; }
+
+            /* 2. 날짜 숫자(N일) 및 요일 글자 크기 축소 */
+            .fc-daygrid-day-number { font-size: 0.8rem !important; padding: 4px !important; }
+            .fc-col-header-cell-cushion { font-size: 0.8rem !important; }
+
+            /* 3. 달력 내부 일정 텍스트 크기 조절 */
+            .fc-event-title { font-size: 0.7rem !important; }
+            
+            /* 4. 모달 여백 조정 */
+            .modal-content { padding: 20px; margin: 15% auto; width: 94%; }
+        }
+
         /* 모달 공통 */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; animation: modal-in 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
@@ -28,7 +46,6 @@
         .event-item { transition: all 0.2s; border-left: 4px solid #3b82f6; cursor: pointer; }
         body.admin-mode .event-item:hover { background-color: #fef2f2; border-left-color: #ef4444; }
 
-        /* 흔들림 애니메이션 (오류 시) */
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .shake { animation: shake 0.2s ease-in-out 0s 2; }
     </style>
@@ -99,18 +116,15 @@
             document.getElementById('timeInputGroup').style.display = type === "2" ? "block" : "none";
         };
 
-        // [인증 로직 고도화]
         window.handleAuth = () => {
             const input = document.getElementById('serialInput');
             const content = document.getElementById('authContent');
-            
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
                 document.getElementById('authBtn').innerText = "관리자 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
             } else {
-                // 흔들림 효과 추가 후 오류 모달 팝업
                 content.classList.add('shake');
                 setTimeout(() => content.classList.remove('shake'), 400);
                 openModal('errorModal');
@@ -118,7 +132,6 @@
             }
         };
 
-        // 이하 Firebase 및 Calendar 로직 동일...
         window.requestDelete = (id, title) => {
             if(!document.body.classList.contains('admin-mode')) return;
             document.getElementById('deleteTargetTitle').innerText = `"${title}"`;
@@ -152,7 +165,7 @@
                 initialView: 'dayGridMonth',
                 locale: 'ko',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
-                dayMaxEvents: true,
+                dayMaxEvents: true, // 모바일에서 '더보기' 자동 활성화
                 views: { listMonth: { validRange: { start: todayStr } } },
                 dateClick: (info) => {
                     const dateStr = info.dateStr;
