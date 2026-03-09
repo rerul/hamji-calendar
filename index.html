@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리 그룹 일정관리</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
+
+    <style>
+        body { font-family: 'Pretendard', sans-serif; }
+        #calendar { max-width: 900px; margin: 40px auto; padding: 20px; background: white; border-radius: 12px; shadow: lg; }
+        .fc-event { cursor: pointer; border: none !important; padding: 2px 5px; }
+        /* 관리자 모드일 때만 보이는 요소 */
+        .admin-only { display: none; }
+        body.admin-mode .admin-only { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <nav class="bg-white shadow-sm p-4 flex justify-between items-center px-10">
+        <h1 class="text-xl font-bold text-blue-600">📅 Group Calendar</h1>
+        <div class="flex gap-2">
+            <button id="authBtn" onclick="authenticateAdmin()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium transition">관리자 인증</button>
+            <button id="addBtn" onclick="openAddModal()" class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">+ 일정 추가</button>
+        </div>
+    </nav>
+
+    <div id="calendar"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ⚠️ [중요] 여기에 아까 메모하신 firebaseConfig를 붙여넣으세요!
+          const firebaseConfig = {
+    apiKey: "AIzaSyDuB5fDjAqs0vyKDj8qnKgRYe5Er9-Fogc",
+    authDomain: "hamji-calendar.firebaseapp.com",
+    projectId: "hamji-calendar",
+    storageBucket: "hamji-calendar.firebasestorage.app",
+    messagingSenderId: "28553121023",
+    appId: "1:28553121023:web:4fa03b998a1469408510ca",
+    measurementId: "G-E4CPF0REFB"
+  };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const eventCol = collection(db, "events");
+
+        // --- 관리자 인증 로직 ---
+        const MASTER_SERIAL = "1234"; // ⚠️ 원하는 시리얼 번호로 수정하세요!
+        window.authenticateAdmin = () => {
+            const input = prompt("시리얼 번호를 입력하세요:");
+            if (input === MASTER_SERIAL) {
+                alert("관리자 인증 성공!");
+                document.body.classList.add('admin-mode');
+                document.getElementById('authBtn').innerText = "인증됨 ✅";
+            } else {
+                alert("번호가 틀렸습니다.");
+            }
+        };
+
+        // --- 달력 렌더링 ---
+        let calendar;
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                dayMaxEvents: 3, // 일정 많으면 ...으로 숨기기
+                eventDidMount: function(info) {
+                    // 마우스 오버 툴팁 설정
+                    tippy(info.el, {
+                        content: `${info.event.title} ${info.event.extendedProps.description || ''}`,
+                        placement: 'top',
+                    });
+                },
+                eventClick: function(info) {
+                    if(document.body.classList.contains('admin-mode')) {
+                        if(confirm("이 일정을 삭제할까요?")) {
+                            deleteDoc(doc(db, "events", info.event.id));
+                        }
+                    }
+                }
+            });
+            calendar.render();
+
+            // Firebase 실시간 데이터 감시
+            onSnapshot(eventCol, (snapshot) => {
+                const events = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                calendar.removeAllEvents();
+                calendar.addEventSource(events);
+            });
+        });
+
+        // --- 일정 추가 로직 ---
+        window.openAddModal = async () => {
+            const title = prompt("일정 제목:");
+            const type = prompt("유형 선택 (1: 당일행사, 2: 커트라인):");
+            const date = prompt("날짜 (YYYY-MM-DD):");
+            
+            let eventData = { title, start: date, allDay: true, backgroundColor: '#28a745' };
+
+            if (type === "2") {
+                const time = prompt("마감 시간 (HH:mm):");
+                eventData.title = `~${time} ${title}`;
+                eventData.allDay = false;
+                eventData.start = `${date}T${time}:00`;
+                eventData.backgroundColor = '#dc3545'; // 커트라인은 빨간색
+            }
+
+            if (title && date) {
+                await addDoc(eventCol, eventData);
+            }
+        };
+    </script>
+</body>
+</html>
