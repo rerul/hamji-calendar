@@ -23,7 +23,7 @@
         body.admin-mode .normal-hint { display: none; }
         body.admin-mode .admin-hint { display: block; }
 
-        /* 상세창 UI 유지 (모바일에서도 큼직하게) */
+        /* 모달 공통 UI */
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; position: relative; animation: modal-in 0.25s ease-out; }
         @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -35,6 +35,8 @@
 
         .event-item { transition: all 0.2s; border-left: 4px solid #3b82f6; cursor: pointer; }
         body.admin-mode .event-item:hover { background-color: #fef2f2; border-left-color: #ef4444; }
+        
+        /* 애니메이션 */
         .shake { animation: shake 0.2s ease-in-out 0s 2; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     </style>
@@ -64,9 +66,18 @@
         </div>
     </div>
 
+    <div id="errorModal" class="modal" style="z-index: 10001;">
+        <div class="modal-content text-center border-t-8 border-orange-400">
+            <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 font-black text-3xl">?</div>
+            <h2 class="text-xl font-bold mb-2 text-slate-900">인증번호 오류</h2>
+            <p class="text-slate-500 text-sm mb-8 px-4 font-medium">입력하신 번호가 일치하지 않습니다.<br>다시 확인해 주세요.</p>
+            <button onclick="closeModal('errorModal')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold">다시 시도</button>
+        </div>
+    </div>
+
     <div id="viewModal" class="modal">
         <div class="modal-content">
-            <button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button>
+            <button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl hover:text-slate-600 transition-colors">✕</button>
             <h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1 tracking-tight">날짜</h2>
             <h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3>
             <div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div>
@@ -74,7 +85,7 @@
     </div>
 
     <div id="addModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content shadow-2xl">
             <h2 class="text-xl font-bold text-slate-900 mb-5 tracking-tight">새 일정 만들기</h2>
             <div class="space-y-4">
                 <input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500">
@@ -89,12 +100,12 @@
             </div>
             <div class="mt-8 flex gap-2">
                 <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button>
-                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold">일정 저장</button>
+                <button onclick="handleAddEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100">일정 저장</button>
             </div>
         </div>
     </div>
 
-    <div id="confirmDeleteModal" class="modal" style="z-index: 11000;"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
+    <div id="confirmDeleteModal" class="modal" style="z-index: 11000;"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 font-medium break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold hover:bg-red-700 transition-colors">삭제</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -126,12 +137,19 @@
 
         window.handleAuth = () => {
             const input = document.getElementById('serialInput');
+            const content = document.getElementById('authContent');
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
                 document.getElementById('authBtn').innerText = "관리자 모드 ✅";
                 document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
-            } else { alert("인증번호가 틀렸습니다."); input.value = ""; }
+            } else {
+                // 알림창 대신 커스텀 오류 모달 표시
+                content.classList.add('shake');
+                setTimeout(() => content.classList.remove('shake'), 400);
+                input.value = "";
+                openModal('errorModal');
+            }
         };
 
         window.requestDelete = (id, title) => {
@@ -188,7 +206,6 @@
             });
             calendar.render();
 
-            // 순정 우클릭 핸들러 (모바일 홀드 인식 포함)
             calendarEl.addEventListener('contextmenu', (e) => {
                 if(!document.body.classList.contains('admin-mode')) return;
                 e.preventDefault();
