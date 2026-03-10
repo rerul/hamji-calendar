@@ -12,6 +12,9 @@
         body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
         #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
+        /* 달력 날짜 칸 선택 방지 */
+        .fc-daygrid-day { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
         .fc-event { cursor: pointer; border: none !important; padding: 4px 8px !important; font-size: 0.85em; border-radius: 8px !important; font-weight: 600; color: white !important; margin-bottom: 2px; display: block !important; opacity: 1 !important; }
         .fc-event-time { display: none !important; }
         .fc-event-title { color: white !important; font-weight: 700 !important; }
@@ -27,9 +30,19 @@
         }
         
         .subject-container { max-width: 950px; margin: 0 auto 40px; }
-        .subject-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; border: 1px solid #f1f5f9; cursor: pointer; }
+        
+        /* 과목 카드: 텍스트 선택 및 시스템 메뉴 차단 */
+        .subject-card { 
+            background: white; border-radius: 16px; padding: 16px; margin-bottom: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; 
+            border: 1px solid #f1f5f9; cursor: pointer;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
         .subject-card:active { transform: scale(0.98); }
         body.admin-mode .subject-card:hover { border-color: #ef4444; background: #fff1f2; }
+
+        /* 일정 리스트 아이템 선택 방지 */
+        .event-item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; position: relative; animation: modal-in 0.25s ease-out; }
@@ -87,10 +100,10 @@
         const rangeCol = collection(db, "test_ranges");
 
         const MASTER_SERIAL = "0307";
-        const SUBJECTS = ["화법과 작문", "영어", "심화수학", "미적분", "수학적 사고와 통계", "물리학II", "화학II", "생명과학II", "지구과학II",];
+        const SUBJECTS = ["화법과 작문", "영어", "심화수학", "미적분", "수학적 사고와 통계", "물리학II", "화학II", "생명과학II", "지구과학II"];
         let rangeData = {};
         let allEvents = [];
-        let currentEditId = null; // 수정 중인 일정 ID 저장
+        let currentEditId = null;
 
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
         window.closeModal = (id) => { 
@@ -118,7 +131,7 @@
                 };
                 const handleLongPress = (e) => {
                     if(!document.body.classList.contains('admin-mode')) return;
-                    e.preventDefault();
+                    if(e) e.preventDefault();
                     document.getElementById('editSubjectTitle').innerText = `${sub} 범위 수정`;
                     document.getElementById('rangeInput').value = rangeData[sub] || "";
                     document.getElementById('saveRangeBtn').onclick = () => saveRange(sub);
@@ -126,7 +139,7 @@
                 };
                 card.oncontextmenu = handleLongPress;
                 let timer;
-                card.ontouchstart = () => { timer = setTimeout(() => handleLongPress(new Event('longpress')), 600); };
+                card.ontouchstart = () => { timer = setTimeout(() => handleLongPress(), 600); };
                 card.ontouchend = () => clearTimeout(timer);
                 grid.appendChild(card);
             });
@@ -171,7 +184,6 @@
             openModal('confirmDeleteModal'); 
         };
 
-        // 수정 모드 진입 함수
         window.prepareEdit = (ev) => {
             if(!document.body.classList.contains('admin-mode')) return;
             currentEditId = ev.id;
@@ -206,7 +218,7 @@
                 }
                 closeModal('addModal'); 
                 document.getElementById('eventTitle').value = ""; 
-                closeModal('viewModal'); // 수정 후 목록 갱신을 위해 닫기
+                closeModal('viewModal');
             } catch (e) { console.error(e); } 
         };
 
@@ -235,17 +247,11 @@
                         const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
                         item.innerHTML = `<div class="flex justify-between items-start"><div class="flex-1 pr-2"><h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title}</h4><p class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">${displayTime}</p></div><span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span></div>`;
                         
-                        // 기본 클릭: 삭제 요청
                         item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
-                        
-                        // 우클릭: 수정 요청
                         item.oncontextmenu = (e) => { e.preventDefault(); prepareEdit(ev); };
-
-                        // 모바일 홀드: 수정 요청
                         let itemTimer;
                         item.ontouchstart = () => { itemTimer = setTimeout(() => prepareEdit(ev), 600); };
                         item.ontouchend = () => clearTimeout(itemTimer);
-
                         listEl.appendChild(item);
                     });
                     openModal('viewModal');
