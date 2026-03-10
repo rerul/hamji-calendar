@@ -24,12 +24,8 @@
         .fc-event-time { display: none !important; }
         .fc-event-title { color: white !important; font-weight: 700 !important; }
 
-        /* [리스트 뷰] 스타일 및 과거 일정 숨기기 */
+        /* [리스트 뷰] 스타일 */
         .fc-list-event { background-color: transparent !important; cursor: pointer; }
-        
-        /* 리스트 뷰에서 오늘 이전의 일정(fc-event-past) 숨기기 */
-        .fc-list-event.fc-event-past { display: none !important; }
-        
         .fc-list-event-title { 
             color: #1e293b !important; 
             font-weight: 700 !important;
@@ -37,6 +33,9 @@
         }
         .fc-list-day-side-text, .fc-list-day-text { font-weight: 800; color: #3b82f6; }
         .fc-list-event-dot { border-width: 5px !important; }
+
+        /* 리스트 뷰에서 과거 일정 및 헤더 숨김 처리용 클래스 */
+        .hidden-past { display: none !important; }
 
         .fc { font-size: 0.85rem !important; }
         .fc .fc-button { padding: 4px 8px !important; font-size: 0.75rem !important; font-weight: 700 !important; }
@@ -49,7 +48,6 @@
         }
         
         .subject-container { max-width: 950px; margin: 0 auto 40px; }
-        
         .subject-card { 
             background: white; border-radius: 16px; padding: 16px; margin-bottom: 8px; 
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; 
@@ -119,6 +117,27 @@
         let rangeData = {};
         let allEvents = [];
         let currentEditId = null;
+
+        // 과거 리스트 숨김 필터 함수
+        function filterPastListItems() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            // 1. 모든 리스트 행과 날짜 헤더를 찾음
+            const rows = document.querySelectorAll('.fc-list-event, .fc-list-day');
+            
+            rows.forEach(row => {
+                const dateStr = row.getAttribute('data-date');
+                if (dateStr) {
+                    const rowDate = new Date(dateStr);
+                    if (rowDate < today) {
+                        row.classList.add('hidden-past');
+                    } else {
+                        row.classList.remove('hidden-past');
+                    }
+                }
+            });
+        }
 
         window.openModal = (id) => document.getElementById(id).style.display = 'block';
         window.closeModal = (id) => { 
@@ -248,15 +267,9 @@
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 dayMaxEvents: true, displayEventTime: false,
                 
-                /* [과거 일정 필터링 설정] */
-                eventClassNames: function(arg) {
-                    const today = new Date();
-                    today.setHours(0,0,0,0);
-                    const eventDate = new Date(arg.event.start);
-                    // 이벤트 날짜가 오늘보다 이전이면 fc-event-past 클래스 부여
-                    if (eventDate < today) { return ['fc-event-past']; }
-                    return [];
-                },
+                // 뷰가 렌더링되거나 업데이트될 때마다 필터 실행
+                viewDidMount: () => filterPastListItems(),
+                viewDidUpdate: () => filterPastListItems(),
 
                 dateClick: (info) => {
                     if (isLongPress) { isLongPress = false; return; }
@@ -316,6 +329,8 @@
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calendar.removeAllEvents();
                 calendar.addEventSource(allEvents.map(ev => ({ ...ev, display: 'block' }))); 
+                // 데이터 업데이트 시 리스트 필터 재실행
+                setTimeout(filterPastListItems, 100);
             });
             renderSubjects();
         });
