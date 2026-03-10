@@ -12,10 +12,9 @@
         body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
         #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         
-        /* 달력 날짜 칸 선택 방지 */
         .fc-daygrid-day { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
-        /* [그리드 뷰] 이벤트 스타일 */
+        /* [그리드 뷰] 스타일 */
         .fc-daygrid-event { 
             cursor: pointer; border: none !important; padding: 4px 8px !important; 
             font-size: 0.85em; border-radius: 8px !important; font-weight: 600; 
@@ -34,13 +33,12 @@
         .fc-list-day-side-text, .fc-list-day-text { font-weight: 800; color: #3b82f6; }
         .fc-list-event-dot { border-width: 5px !important; }
 
-        /* 리스트 뷰에서 과거 일정 및 헤더 숨김 처리용 클래스 */
+        /* 과거 항목 숨김 전용 클래스 */
         .hidden-past { display: none !important; }
 
         .fc { font-size: 0.85rem !important; }
         .fc .fc-button { padding: 4px 8px !important; font-size: 0.75rem !important; font-weight: 700 !important; }
         .fc-daygrid-day-number { font-size: 0.75rem !important; padding: 2px 5px !important; }
-        .fc-col-header-cell-cushion { font-size: 0.8rem !important; }
 
         @media (max-width: 768px) {
             .fc-toolbar-title { font-size: 1rem !important; }
@@ -54,17 +52,9 @@
             border: 1px solid #f1f5f9; cursor: pointer;
             -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
         }
-        .subject-card:active { transform: scale(0.98); }
-        body.admin-mode .subject-card:hover { border-color: #ef4444; background: #fff1f2; }
-
-        .event-item { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
         .modal-content { background: white; margin: 12% auto; padding: 24px; border-radius: 24px; width: 92%; max-width: 450px; position: relative; animation: modal-in 0.25s ease-out; }
         @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        .shake { animation: shake 0.2s ease-in-out 0s 2; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         .whitespace-pre-wrap { white-space: pre-wrap; word-break: break-all; }
     </style>
 </head>
@@ -89,7 +79,7 @@
     <div id="viewRangeModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewRangeModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="targetSubjectName" class="text-2xl font-black text-slate-900 mb-6">과목명</h2><div id="rangeDisplay" class="bg-slate-50 p-6 rounded-2xl min-h-[150px] whitespace-pre-wrap leading-relaxed text-slate-700 font-medium"></div></div></div>
     <div id="authModal" class="modal"><div id="authContent" class="modal-content text-center"><h2 class="text-xl font-bold mb-4">관리자 로그인</h2><input type="password" id="serialInput" class="w-full p-4 rounded-2xl border mb-4 text-center text-xl tracking-widest"><div class="flex gap-2"><button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl">닫기</button><button onclick="handleAuth()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl">확인</button></div></div></div>
     <div id="errorModal" class="modal"><div class="modal-content text-center border-t-8 border-orange-400"><h2 class="text-xl font-bold mb-8">인증번호 오류</h2><button onclick="closeModal('errorModal')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold">다시 시도</button></div></div>
-    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1">날짜</h2><h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div><p class="text-[10px] text-slate-400 mt-4 text-center">* 관리자는 우클릭/홀드로 수정 가능</p></div></div>
+    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1">날짜</h2><h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div></div></div>
     <div id="addModal" class="modal"><div class="modal-content"><h2 id="modalTitle" class="text-xl font-bold text-slate-900 mb-5 tracking-tight">새 일정 만들기</h2><div class="space-y-4"><input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 rounded-xl border border-slate-200 outline-none"><div class="grid grid-cols-2 gap-2"><select id="eventType" onchange="toggleTimeInput()" class="p-3 rounded-xl border border-slate-200 bg-white"><option value="1">🔵 일반 행사</option><option value="2">🔴 마감 기한</option></select><input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200"></div><div id="timeInputGroup" style="display:none;"><input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200"></div></div><div class="mt-8 flex gap-2"><button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">취소</button><button onclick="handleSaveEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold">일정 저장</button></div></div></div>
     <div id="confirmDeleteModal" class="modal"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 font-medium break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
 
@@ -118,23 +108,32 @@
         let allEvents = [];
         let currentEditId = null;
 
-        // 과거 리스트 숨김 필터 함수
+        // 리스트 필터링 핵심 로직
         function filterPastListItems() {
             const today = new Date();
             today.setHours(0,0,0,0);
-
-            // 1. 모든 리스트 행과 날짜 헤더를 찾음
-            const rows = document.querySelectorAll('.fc-list-event, .fc-list-day');
             
+            // 리스트의 모든 행(날짜 헤더와 이벤트 행)을 가져옴
+            const rows = document.querySelectorAll('.fc-list-day, .fc-list-event');
+            let currentDayIsPast = false;
+
             rows.forEach(row => {
-                const dateStr = row.getAttribute('data-date');
-                if (dateStr) {
-                    const rowDate = new Date(dateStr);
-                    if (rowDate < today) {
-                        row.classList.add('hidden-past');
-                    } else {
-                        row.classList.remove('hidden-past');
+                // 1. 날짜 헤더(.fc-list-day)인 경우
+                if (row.classList.contains('fc-list-day')) {
+                    const dateStr = row.getAttribute('data-date');
+                    if (dateStr) {
+                        const rowDate = new Date(dateStr);
+                        currentDayIsPast = rowDate < today;
+                        
+                        if (currentDayIsPast) row.classList.add('hidden-past');
+                        else row.classList.remove('hidden-past');
                     }
+                } 
+                // 2. 이벤트 행(.fc-list-event)인 경우
+                else if (row.classList.contains('fc-list-event')) {
+                    // 현재 소속된 날짜 헤더가 과거라면 이벤트 행도 숨김
+                    if (currentDayIsPast) row.classList.add('hidden-past');
+                    else row.classList.remove('hidden-past');
                 }
             });
         }
@@ -163,25 +162,8 @@
                     document.getElementById('rangeDisplay').innerText = rangeData[sub] || "등록된 범위가 없습니다.";
                     openModal('viewRangeModal');
                 };
-                const handleLongPress = (e) => {
-                    if(!document.body.classList.contains('admin-mode')) return;
-                    if(e) e.preventDefault();
-                    document.getElementById('editSubjectTitle').innerText = `${sub} 범위 수정`;
-                    document.getElementById('rangeInput').value = rangeData[sub] || "";
-                    document.getElementById('saveRangeBtn').onclick = () => saveRange(sub);
-                    openModal('editRangeModal');
-                };
-                card.oncontextmenu = handleLongPress;
-                let timer;
-                card.ontouchstart = () => { timer = setTimeout(() => handleLongPress(), 600); };
-                card.ontouchend = () => clearTimeout(timer);
                 grid.appendChild(card);
             });
-        }
-
-        async function saveRange(subject) {
-            const newRange = document.getElementById('rangeInput').value;
-            try { await setDoc(doc(db, "test_ranges", subject), { content: newRange }); closeModal('editRangeModal'); } catch (e) { console.error(e); }
         }
 
         onSnapshot(rangeCol, (snapshot) => {
@@ -194,42 +176,14 @@
             if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
                 document.getElementById('authBtn').innerText = "관리 모드 ✅";
-                document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
-                renderSubjects();
             } else {
-                document.getElementById('authContent').classList.add('shake');
-                setTimeout(() => document.getElementById('authContent').classList.remove('shake'), 400);
-                input.value = "";
                 openModal('errorModal');
             }
         };
 
         window.toggleTimeInput = () => { const type = document.getElementById('eventType').value; document.getElementById('timeInputGroup').style.display = type === "2" ? "block" : "none"; };
         
-        window.requestDelete = (id, title) => { 
-            if(!document.body.classList.contains('admin-mode')) return; 
-            document.getElementById('deleteTargetTitle').innerText = `"${title}"`; 
-            document.getElementById('finalDeleteBtn').onclick = async () => { 
-                await deleteDoc(doc(db, "events", id)); 
-                closeModal('confirmDeleteModal'); 
-                closeModal('viewModal'); 
-            }; 
-            openModal('confirmDeleteModal'); 
-        };
-
-        window.prepareEdit = (ev) => {
-            if(!document.body.classList.contains('admin-mode')) return;
-            currentEditId = ev.id;
-            document.getElementById('modalTitle').innerText = "일정 수정하기";
-            document.getElementById('eventTitle').value = ev.rawTitle || ev.title;
-            document.getElementById('eventType').value = ev.type;
-            document.getElementById('eventDate').value = ev.start.split('T')[0];
-            document.getElementById('eventTime').value = ev.time || "";
-            toggleTimeInput();
-            openModal('addModal');
-        };
-
         window.handleSaveEvent = async () => { 
             const title = document.getElementById('eventTitle').value; 
             const type = document.getElementById('eventType').value; 
@@ -245,34 +199,25 @@
             if(type === "2" && time) eventData.start = `${date}T${time}:00`; 
 
             try { 
-                if (currentEditId) {
-                    await updateDoc(doc(db, "events", currentEditId), eventData);
-                } else {
-                    await addDoc(eventCol, eventData); 
-                }
+                await addDoc(eventCol, eventData); 
                 closeModal('addModal'); 
                 document.getElementById('eventTitle').value = ""; 
-                closeModal('viewModal');
             } catch (e) { console.error(e); } 
         };
 
         let calendar;
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
-            let isLongPress = false;
-            let longPressTimer;
-
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth', locale: 'ko',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 dayMaxEvents: true, displayEventTime: false,
                 
-                // 뷰가 렌더링되거나 업데이트될 때마다 필터 실행
+                // 리스트 렌더링 시 필터 적용
                 viewDidMount: () => filterPastListItems(),
                 viewDidUpdate: () => filterPastListItems(),
 
                 dateClick: (info) => {
-                    if (isLongPress) { isLongPress = false; return; }
                     const dateStr = info.dateStr;
                     document.getElementById('viewDateTitle').innerText = dateStr;
                     const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
@@ -281,55 +226,20 @@
                     
                     dayEvents.forEach(ev => {
                         const item = document.createElement('div');
-                        item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2 hover:shadow-md transition-all cursor-pointer";
+                        item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2";
                         const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
-                        const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
-                        item.innerHTML = `<div class="flex justify-between items-start"><div class="flex-1 pr-2"><h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title}</h4><p class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">${displayTime}</p></div><span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span></div>`;
-                        
-                        item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
-                        item.oncontextmenu = (e) => { e.preventDefault(); prepareEdit(ev); };
-                        let itemTimer;
-                        item.ontouchstart = () => { itemTimer = setTimeout(() => prepareEdit(ev), 600); };
-                        item.ontouchend = () => clearTimeout(itemTimer);
+                        item.innerHTML = `<h4 class="text-lg font-bold">${ev.rawTitle || ev.title}</h4><span class="text-xs">${tag}</span>`;
                         listEl.appendChild(item);
                     });
                     openModal('viewModal');
-                },
-                eventClick: (info) => { 
-                    info.jsEvent.preventDefault(); 
-                    calendar.trigger('dateClick', { dateStr: info.event.startStr.split('T')[0] }); 
                 }
             });
             calendar.render();
 
-            const triggerAddModal = (dateStr) => {
-                if(!document.body.classList.contains('admin-mode')) return;
-                document.getElementById('eventDate').value = dateStr;
-                openModal('addModal');
-            };
-
-            calendarEl.addEventListener('contextmenu', (e) => {
-                if(!document.body.classList.contains('admin-mode')) return;
-                const dayEl = e.target.closest('.fc-daygrid-day');
-                if (dayEl) { e.preventDefault(); triggerAddModal(dayEl.getAttribute('data-date')); }
-            });
-
-            calendarEl.addEventListener('touchstart', (e) => {
-                const dayEl = e.target.closest('.fc-daygrid-day');
-                if (dayEl) { longPressTimer = setTimeout(() => { isLongPress = true; triggerAddModal(dayEl.getAttribute('data-date')); }, 600); }
-            }, { passive: true });
-
-            calendarEl.addEventListener('touchend', () => { 
-                clearTimeout(longPressTimer); 
-                if (isLongPress) setTimeout(() => { isLongPress = false; }, 100); 
-            });
-            calendarEl.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-            
             onSnapshot(eventCol, (snapshot) => { 
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calendar.removeAllEvents();
-                calendar.addEventSource(allEvents.map(ev => ({ ...ev, display: 'block' }))); 
-                // 데이터 업데이트 시 리스트 필터 재실행
+                calendar.addEventSource(allEvents);
                 setTimeout(filterPastListItems, 100);
             });
             renderSubjects();
