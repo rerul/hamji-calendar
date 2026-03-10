@@ -216,43 +216,104 @@
         window.requestDelete = (id, title) => { if(!document.body.classList.contains('admin-mode')) return; document.getElementById('deleteTargetTitle').innerText = `"${title}"`; document.getElementById('finalDeleteBtn').onclick = async () => { await deleteDoc(doc(db, "events", id)); closeModal('confirmDeleteModal'); closeModal('viewModal'); }; openModal('confirmDeleteModal'); };
         window.handleAddEvent = async () => { const title = document.getElementById('eventTitle').value; const type = document.getElementById('eventType').value; const date = document.getElementById('eventDate').value; const time = document.getElementById('eventTime').value; if(!title || !date) return; let eventData = { rawTitle: title, title: title, start: date, allDay: type !== "2", type, time: time || "", backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", textColor: "#ffffff", borderColor: 'transparent' }; if(type === "2" && time) eventData.start = `${date}T${time}:00`; try { await addDoc(eventCol, eventData); closeModal('addModal'); document.getElementById('eventTitle').value = ""; } catch (e) { console.error(e); } };
 
-        let calendar;
-        document.addEventListener('DOMContentLoaded', function() {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth', locale: 'ko',
-                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
-                dayMaxEvents: true, displayEventTime: false,
-                dateClick: (info) => {
-                    const dateStr = info.dateStr;
-                    document.getElementById('viewDateTitle').innerText = dateStr;
-                    const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
-                    const listEl = document.getElementById('eventList');
-                    listEl.innerHTML = dayEvents.length ? "" : "<p class='text-slate-400 py-10 text-center font-medium'>일정이 없습니다.</p>";
-                    dayEvents.forEach(ev => {
-                        const item = document.createElement('div');
-                        item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2 hover:shadow-md transition-all";
-                        const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
-                        const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
-                        item.innerHTML = `<div class="flex justify-between items-start"><div class="flex-1 pr-2"><h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title}</h4><p class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">${displayTime}</p></div><span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span></div>`;
-                        item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
-                        listEl.appendChild(item);
-                    });
-                    openModal('viewModal');
-                },
-                eventClick: (info) => { info.jsEvent.preventDefault(); calendar.trigger('dateClick', { dateStr: info.event.startStr.split('T')[0] }); }
-            });
-            calendar.render();
-            calendarEl.addEventListener('contextmenu', (e) => { if(!document.body.classList.contains('admin-mode')) return; e.preventDefault(); const dayEl = e.target.closest('.fc-daygrid-day'); if (dayEl) { document.getElementById('eventDate').value = dayEl.getAttribute('data-date'); openModal('addModal'); } });
+// ... (이전 코드 동일)
+
+let calendar;
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    let isLongPress = false; // 홀드 상태를 체크하는 플래그
+    let longPressTimer;
+
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth', locale: 'ko',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+        dayMaxEvents: true, displayEventTime: false,
+        dateClick: (info) => {
+            // [수정] 홀드 직후에 발생하는 클릭 이벤트면 무시
+            if (isLongPress) {
+                isLongPress = false; 
+                return;
+            }
+
+            const dateStr = info.dateStr;
+            document.getElementById('viewDateTitle').innerText = dateStr;
+            const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
+            const listEl = document.getElementById('eventList');
+            listEl.innerHTML = dayEvents.length ? "" : "<p class='text-slate-400 py-10 text-center font-medium'>일정이 없습니다.</p>";
             
-            let allEvents = [];
-            onSnapshot(eventCol, (snapshot) => { 
-                allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                calendar.removeAllEvents();
-                calendar.addEventSource(allEvents.map(ev => ({ ...ev, display: 'block', backgroundColor: ev.type === "2" ? "#ef4444" : "#3b82f6", textColor: "#ffffff" }))); 
+            dayEvents.forEach(ev => {
+                const item = document.createElement('div');
+                item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2 hover:shadow-md transition-all";
+                const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
+                const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
+                item.innerHTML = `<div class="flex justify-between items-start"><div class="flex-1 pr-2"><h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title}</h4><p class="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">${displayTime}</p></div><span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span></div>`;
+                item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
+                listEl.appendChild(item);
             });
-            renderSubjects();
-        });
+            openModal('viewModal');
+        },
+        eventClick: (info) => { 
+            info.jsEvent.preventDefault(); 
+            calendar.trigger('dateClick', { dateStr: info.event.startStr.split('T')[0] }); 
+        }
+    });
+    calendar.render();
+
+    /* --- 우클릭 및 홀드 로직 개선 --- */
+    const triggerAddModal = (dateStr) => {
+        if(!document.body.classList.contains('admin-mode')) return;
+        document.getElementById('eventDate').value = dateStr;
+        openModal('addModal');
+    };
+
+    // PC 우클릭
+    calendarEl.addEventListener('contextmenu', (e) => {
+        if(!document.body.classList.contains('admin-mode')) return;
+        const dayEl = e.target.closest('.fc-daygrid-day');
+        if (dayEl) {
+            e.preventDefault();
+            triggerAddModal(dayEl.getAttribute('data-date'));
+        }
+    });
+
+    // 모바일 홀드 (간섭 방지 포함)
+    calendarEl.addEventListener('touchstart', (e) => {
+        const dayEl = e.target.closest('.fc-daygrid-day');
+        if (dayEl) {
+            // 터치 시작 시 타이머 작동
+            longPressTimer = setTimeout(() => {
+                isLongPress = true; // 홀드 성공 상태로 변경
+                triggerAddModal(dayEl.getAttribute('data-date'));
+            }, 600);
+        }
+    }, { passive: true });
+
+    calendarEl.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
+        // 홀드가 발생했다면, 약간의 시간차를 두고 플래그를 해제하여 dateClick이 무시되게 함
+        if (isLongPress) {
+            setTimeout(() => { isLongPress = false; }, 100);
+        }
+    });
+
+    calendarEl.addEventListener('touchmove', () => {
+        clearTimeout(longPressTimer); // 스크롤 시 홀드 취소
+    });
+    /* ------------------------------ */
+    
+    let allEvents = [];
+    onSnapshot(eventCol, (snapshot) => { 
+        allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        calendar.removeAllEvents(); // [수정] 오타 'ㅈ' 제거 완료
+        calendar.addEventSource(allEvents.map(ev => ({ 
+            ...ev, 
+            display: 'block', 
+            backgroundColor: ev.type === "2" ? "#ef4444" : "#3b82f6", 
+            textColor: "#ffffff" 
+        }))); 
+    });
+    renderSubjects();
+});
     </script>
 </body>
 </html>
