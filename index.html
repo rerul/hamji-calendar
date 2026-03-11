@@ -16,14 +16,21 @@
         .fc-event-time { display: none !important; }
         .fc-event-title { color: white !important; font-weight: 700 !important; }
         
-        /* 시험범위 리스트 스타일 수정 */
+        /* 시험범위 영역 최적화 */
         #subjectGrid { max-width: 950px; margin: 0 auto; }
-        .subject-card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; cursor: pointer; transition: all 0.2s; }
+        .subject-card { 
+            background: white; 
+            border-radius: 16px; 
+            padding: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            border: 1px solid #f1f5f9; 
+            cursor: pointer; 
+            width: 100%; /* 기본(모바일)은 꽉 차게 */
+        }
         
         @media (min-width: 768px) {
             .subject-card {
-                max-width: 467px; /* 1줄 2개 배치 시 달력 폭(950px)과 맞추기 위해 조정 */
-                width: 100%;
+                max-width: 467px; /* PC에서만 폭 제한하여 달력과 맞춤 */
             }
         }
 
@@ -52,7 +59,7 @@
             <button onclick="toggleSubjectList()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.99] transition-all">📖 시험범위 조회</button>
         </div>
         <div id="subjectListArea" class="px-2 hidden mt-6">
-            <div id="subjectGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="subjectGrid" class="grid grid-cols-1 md:grid-cols-2 gap-y-3 md:gap-x-4"></div>
         </div>
     </div>
 
@@ -174,7 +181,7 @@
             const grid = document.getElementById('subjectGrid'); grid.innerHTML = "";
             SUBJECTS.forEach(sub => {
                 const card = document.createElement('div');
-                card.className = "subject-card flex justify-between items-center mx-auto";
+                card.className = "subject-card flex justify-between items-center";
                 card.innerHTML = `<span class="text-lg font-bold text-slate-700">${sub}</span><span class="text-xs font-bold text-blue-500 bg-blue-50 px-3 py-1 rounded-full">조회</span>`;
                 card.onclick = () => {
                     document.getElementById('targetSubjectName').innerText = sub;
