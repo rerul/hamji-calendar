@@ -9,52 +9,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        
-        /* [핵심] 달력 컨테이너: 화면을 벗어나지 않도록 설정 */
-        #calendar { 
-            max-width: 950px; 
-            margin: 10px auto; 
-            padding: 5px; 
-            background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            width: 100%; 
-            box-sizing: border-box;
-        }
-
-        /* [모바일 헤더 정렬] */
-        @media (max-width: 768px) {
-            .fc .fc-toolbar {
-                display: flex;
-                flex-direction: column; /* 세로 정렬로 겹침 방지 */
-                gap: 8px;
-                margin-bottom: 1em !important;
-            }
-            .fc .fc-toolbar-title { font-size: 1.2rem !important; }
-            .fc .fc-button { padding: 0.4em 0.6em !important; font-size: 0.85rem !important; }
-            
-            /* 달력 내부 숫자 크기 조절하여 드래그 발생 억제 */
-            .fc .fc-daygrid-day-number { font-size: 0.8rem; padding: 2px !important; }
-        }
-
-        /* [+1 more 위치 교정] */
-        .fc-daygrid-more-link {
-            display: block !important;
-            margin-top: -2px !important; /* 위로 살짝 올림 */
-            padding: 1px 4px !important;
-            font-size: 0.7rem !important;
-            font-weight: 800;
-            color: #64748b !important;
-            text-align: center;
-        }
-
+        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        #calendar { max-width: 950px; margin: 20px auto; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
         .fc-daygrid-day { -webkit-user-select: none; user-select: none; }
-        .fc-daygrid-event { cursor: pointer; border: none !important; padding: 2px 4px !important; font-size: 0.75rem; border-radius: 4px !important; font-weight: 600; color: white !important; margin-bottom: 1px; display: block !important; }
+        .fc-daygrid-event { cursor: pointer; border: none !important; padding: 4px 8px !important; font-size: 0.85em; border-radius: 8px !important; font-weight: 600; color: white !important; margin-bottom: 2px; display: block !important; }
         .fc-event-time { display: none !important; }
         .fc-event-title { color: white !important; font-weight: 700 !important; }
         
-        /* 시험범위 영역 */
+        /* 시험범위 영역 최적화 */
         #subjectGrid { max-width: 950px; margin: 0 auto; }
         .subject-card { 
             background: white; 
@@ -63,12 +25,13 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
             border: 1px solid #f1f5f9; 
             cursor: pointer; 
-            width: 100%; 
+            width: 100%; /* 기본(모바일)은 꽉 차게 */
         }
         
         @media (min-width: 768px) {
-            .subject-card { max-width: 467px; }
-            .fc .fc-toolbar { flex-direction: row; justify-content: space-between; } /* PC에선 가로 정렬 */
+            .subject-card {
+                max-width: 467px; /* PC에서만 폭 제한하여 달력과 맞춤 */
+            }
         }
 
         .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
@@ -80,6 +43,7 @@
         .event-image-container { margin-top: 16px; position: relative; width: 100%; }
         .event-display-img { width: 100%; border-radius: 16px; object-fit: contain; max-height: 300px; border: 1px solid #f1f5f9; background: #fff; }
         .download-btn { width: 100%; margin-top: 8px; padding: 12px 0; background: #f1f5f9; color: #475569; border-radius: 12px; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+        .download-btn:active { background: #e2e8f0; transform: scale(0.98); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 pb-20">
@@ -89,7 +53,7 @@
         <button id="authBtn" onclick="openModal('authModal')" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-all">관리자 인증</button>
     </nav>
 
-    <div class="px-2 mt-2 text-center">
+    <div class="px-4 mt-4 text-center">
         <div id="calendar"></div>
         <div class="max-w-[950px] mx-auto px-2 mb-4">
             <button onclick="toggleSubjectList()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.99] transition-all">📖 시험범위 조회</button>
@@ -99,7 +63,8 @@
         </div>
     </div>
 
-    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1">날짜</h2><h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div></div></div>
+    <div id="viewModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="viewDateTitle" class="text-lg font-bold text-slate-400 mb-1">날짜</h2><h3 class="text-2xl font-black text-slate-900 mb-6 uppercase">상세 일정</h3><div id="eventList" class="space-y-3 max-h-[400px] overflow-y-auto pr-1"></div><p class="text-[10px] text-slate-400 mt-4 text-center">* 관리자는 우클릭/홀드로 수정 가능</p></div></div>
+    
     <div id="addModal" class="modal"><div class="modal-content"><h2 id="modalTitle" class="text-xl font-bold text-slate-900 mb-5 tracking-tight text-center">새 일정 만들기</h2><div class="space-y-4">
         <input type="text" id="eventTitle" placeholder="일정 이름" class="w-full p-3 rounded-xl border border-slate-200 outline-none">
         <div class="grid grid-cols-2 gap-2">
@@ -107,15 +72,28 @@
             <input type="date" id="eventDate" class="p-3 rounded-xl border border-slate-200">
         </div>
         <div id="timeInputGroup" style="display:none;"><input type="time" id="eventTime" class="w-full p-3 rounded-xl border border-slate-200 font-bold"></div>
-        <textarea id="eventDescription" placeholder="상세 설명" class="w-full h-20 p-3 rounded-xl border border-slate-200 text-sm"></textarea>
-        <div class="mt-1"><input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)"><button onclick="document.getElementById('imageInput').click()" class="w-full py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs font-extrabold">📷 사진 첨부</button>
-        <div id="fileInfoContainer" class="flex"><div class="flex flex-col overflow-hidden mr-2"><span id="fileName" class="text-[11px] font-bold text-slate-700 truncate">파일명</span><span id="fileSize" class="text-[9px] text-blue-500 font-black uppercase">0.0 MB</span></div><button onclick="removeSelectedImage()" class="shrink-0 bg-slate-200 text-slate-600 rounded-lg p-1 px-2 text-[10px] font-black">삭제</button></div></div>
-    </div><div class="mt-6 flex gap-2"><button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold text-slate-500">취소</button><button id="saveEventBtn" onclick="handleSaveEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold"><span id="btnText">저장</span></button></div></div></div>
-    
-    <div id="viewRangeModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewRangeModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="targetSubjectName" class="text-2xl font-black text-slate-900 mb-6">과목명</h2><div id="rangeDisplay" class="bg-slate-50 p-6 rounded-2xl min-h-[150px] whitespace-pre-wrap leading-relaxed"></div></div></div>
-    <div id="authModal" class="modal"><div class="modal-content text-center"><h2 class="text-xl font-bold mb-4">관리자 로그인</h2><input type="password" id="serialInput" class="w-full p-4 rounded-2xl border mb-4 text-center text-xl tracking-widest"><div class="flex gap-2"><button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl">닫기</button><button onclick="handleAuth()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl">확인</button></div></div></div>
-    <div id="editRangeModal" class="modal"><div class="modal-content"><h2 id="editSubjectTitle" class="text-xl font-black text-slate-900 mb-4">과목명</h2><textarea id="rangeInput" class="w-full h-48 p-4 rounded-xl border border-slate-200 outline-none"></textarea><div class="mt-6 flex gap-2"><button onclick="closeModal('editRangeModal')" class="flex-1 bg-slate-100 p-4 rounded-xl font-bold">취소</button><button id="saveRangeBtn" class="flex-2 bg-blue-600 text-white p-4 rounded-xl font-bold">저장</button></div></div></div>
-    <div id="confirmDeleteModal" class="modal"><div class="modal-content text-center"><h2 class="text-xl font-bold mb-8">삭제할까요?</h2><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
+        <textarea id="eventDescription" placeholder="상세 설명 (선택사항)" class="w-full h-20 p-3 rounded-xl border border-slate-200 outline-none focus:border-blue-500 text-sm"></textarea>
+        <div class="mt-1">
+            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+            <button onclick="document.getElementById('imageInput').click()" class="w-full py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs font-extrabold hover:bg-slate-100 transition-all">📷 사진 첨부 또는 변경</button>
+            <div id="fileInfoContainer" class="flex">
+                <div class="flex flex-col overflow-hidden mr-2">
+                    <span id="fileName" class="text-[11px] font-bold text-slate-700 truncate">파일명.jpg</span>
+                    <span id="fileSize" class="text-[9px] text-blue-500 font-black uppercase">0.0 MB • 선택됨</span>
+                </div>
+                <button onclick="removeSelectedImage()" class="shrink-0 bg-slate-200 text-slate-600 rounded-lg p-1 px-2 text-[10px] font-black">삭제</button>
+            </div>
+        </div>
+    </div><div class="mt-6 flex gap-2">
+        <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold text-slate-500">취소</button>
+        <button id="saveEventBtn" onclick="handleSaveEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold"><span id="btnText">일정 저장</span></button>
+    </div></div></div>
+
+    <div id="editRangeModal" class="modal"><div class="modal-content"><h2 id="editSubjectTitle" class="text-xl font-black text-slate-900 mb-4 tracking-tight">과목명</h2><textarea id="rangeInput" class="w-full h-48 p-4 rounded-xl border border-slate-200 outline-none focus:border-blue-500 whitespace-pre-wrap leading-relaxed"></textarea><div class="mt-6 flex gap-2"><button onclick="closeModal('editRangeModal')" class="flex-1 bg-slate-100 p-4 rounded-xl font-bold">취소</button><button id="saveRangeBtn" class="flex-2 bg-blue-600 text-white p-4 rounded-xl font-bold">저장</button></div></div></div>
+    <div id="viewRangeModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewRangeModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="targetSubjectName" class="text-2xl font-black text-slate-900 mb-6">과목명</h2><div id="rangeDisplay" class="bg-slate-50 p-6 rounded-2xl min-h-[150px] whitespace-pre-wrap leading-relaxed text-slate-700 font-medium"></div></div></div>
+    <div id="authModal" class="modal"><div id="authContent" class="modal-content text-center"><h2 class="text-xl font-bold mb-4">관리자 로그인</h2><input type="password" id="serialInput" class="w-full p-4 rounded-2xl border mb-4 text-center text-xl tracking-widest"><div class="flex gap-2"><button onclick="closeModal('authModal')" class="flex-1 bg-slate-100 p-4 rounded-2xl">닫기</button><button onclick="handleAuth()" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl">확인</button></div></div></div>
+    <div id="errorModal" class="modal"><div class="modal-content text-center border-t-8 border-orange-400"><h2 class="text-xl font-bold mb-8">인증번호 오류</h2><button onclick="closeModal('errorModal')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold">다시 시도</button></div></div>
+    <div id="confirmDeleteModal" class="modal"><div class="modal-content text-center border-t-8 border-red-500"><h2 class="text-xl font-bold mb-2">일정을 삭제할까요?</h2><p id="deleteTargetTitle" class="text-slate-500 text-sm mb-8 px-4 font-medium break-all"></p><div class="flex gap-2"><button onclick="closeModal('confirmDeleteModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">유지</button><button id="finalDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold">삭제</button></div></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -143,22 +121,43 @@
             document.getElementById(id).style.display = 'none'; 
             if(id === 'addModal') { 
                 currentEditId = null; selectedFile = null; currentImageUrl = "";
+                document.getElementById('modalTitle').innerText = "새 일정 만들기";
+                document.getElementById('eventTitle').value = "";
+                document.getElementById('eventDescription').value = "";
+                document.getElementById('imageInput').value = "";
                 document.getElementById('fileInfoContainer').style.display = 'none';
             } 
+        };
+
+        window.downloadImage = async (url, title) => {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `${title}_이미지.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (error) { alert("다운로드 실패"); }
         };
 
         window.handleFileSelect = (event) => {
             const file = event.target.files[0];
             if (file) {
                 selectedFile = file;
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
                 document.getElementById('fileName').innerText = file.name;
-                document.getElementById('fileSize').innerText = `${(file.size / (1024 * 1024)).toFixed(2)} MB • 첨부됨`;
+                document.getElementById('fileSize').innerText = `${sizeInMB} MB • 첨부됨`;
                 document.getElementById('fileInfoContainer').style.display = 'flex';
             }
         };
 
         window.removeSelectedImage = () => {
-            selectedFile = null; currentImageUrl = "";
+            selectedFile = null;
+            currentImageUrl = "";
             document.getElementById('imageInput').value = "";
             document.getElementById('fileInfoContainer').style.display = 'none';
         };
@@ -192,7 +191,7 @@
                 const handleLongPress = (e) => {
                     if(!document.body.classList.contains('admin-mode')) return;
                     if(e) e.preventDefault();
-                    document.getElementById('editSubjectTitle').innerText = `${sub} 수정`;
+                    document.getElementById('editSubjectTitle').innerText = `${sub} 범위 수정`;
                     document.getElementById('rangeInput').value = rangeData[sub] || "";
                     document.getElementById('saveRangeBtn').onclick = () => saveRange(sub);
                     openModal('editRangeModal');
@@ -210,25 +209,57 @@
             try { await setDoc(doc(db, "test_ranges", subject), { content: newRange }); closeModal('editRangeModal'); } catch (e) { console.error(e); }
         }
 
-        onSnapshot(rangeCol, (snapshot) => { snapshot.docs.forEach(doc => { rangeData[doc.id] = doc.data().content; }); renderSubjects(); });
+        onSnapshot(rangeCol, (snapshot) => {
+            snapshot.docs.forEach(doc => { rangeData[doc.id] = doc.data().content; });
+            renderSubjects();
+        });
 
         window.handleAuth = () => {
-            if(document.getElementById('serialInput').value === MASTER_SERIAL) {
+            const input = document.getElementById('serialInput');
+            if(input.value === MASTER_SERIAL) {
                 document.body.classList.add('admin-mode');
                 document.getElementById('authBtn').innerText = "관리 모드 ✅";
+                document.getElementById('authBtn').className = "bg-green-50 text-green-600 px-4 py-2 rounded-lg text-sm font-bold border border-green-200";
                 closeModal('authModal');
                 renderSubjects();
-            } else { alert("인증번호 오류"); }
+            } else { openModal('errorModal'); }
         };
 
         window.toggleTimeInput = () => { document.getElementById('timeInputGroup').style.display = document.getElementById('eventType').value === "2" ? "block" : "none"; };
         
+        window.requestDelete = (id, title) => { 
+            if(!document.body.classList.contains('admin-mode')) return; 
+            document.getElementById('deleteTargetTitle').innerText = `"${title}"`; 
+            document.getElementById('finalDeleteBtn').onclick = async () => { await deleteDoc(doc(db, "events", id)); closeModal('confirmDeleteModal'); closeModal('viewModal'); }; 
+            openModal('confirmDeleteModal'); 
+        };
+
+        window.prepareEdit = (ev) => {
+            if(!document.body.classList.contains('admin-mode')) return;
+            currentEditId = ev.id;
+            document.getElementById('modalTitle').innerText = "일정 수정하기";
+            document.getElementById('eventTitle').value = ev.rawTitle || ev.title;
+            document.getElementById('eventType').value = ev.type;
+            document.getElementById('eventDate').value = ev.start.split('T')[0];
+            document.getElementById('eventTime').value = ev.time || "";
+            document.getElementById('eventDescription').value = ev.description || "";
+            if(ev.imageUrl) {
+                currentImageUrl = ev.imageUrl;
+                document.getElementById('fileName').innerText = "서버 저장됨 (기존 이미지)";
+                document.getElementById('fileInfoContainer').style.display = 'flex';
+            }
+            toggleTimeInput();
+            openModal('addModal');
+        };
+
         window.handleSaveEvent = async () => { 
             const title = document.getElementById('eventTitle').value; 
             const date = document.getElementById('eventDate').value; 
             if(!title || !date) return; 
 
+            const btn = document.getElementById('saveEventBtn');
             const btnText = document.getElementById('btnText');
+            btn.disabled = true;
             btnText.innerText = "처리 중...";
 
             try {
@@ -246,36 +277,55 @@
 
                 if (currentEditId) { await updateDoc(doc(db, "events", currentEditId), eventData); }
                 else { await addDoc(eventCol, eventData); }
-                closeModal('addModal');
+                closeModal('addModal'); closeModal('viewModal');
             } catch (e) { alert("오류 발생"); }
-            finally { btnText.innerText = "저장"; }
+            finally { btn.disabled = false; btnText.innerText = "일정 저장"; }
         };
 
         let calendar;
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
+            let isLongPress = false; let longPressTimer;
+
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth', locale: 'ko',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
-                dayMaxEvents: 2, /* 모바일 높이를 고려하여 이벤트 표시 제한 */
-                contentHeight: 'auto',
-                handleWindowResize: true,
+                dayMaxEvents: true, displayEventTime: false,
                 dateClick: (info) => {
+                    if (isLongPress) { isLongPress = false; return; }
                     const dateStr = info.dateStr;
                     document.getElementById('viewDateTitle').innerText = dateStr;
                     const dayEvents = allEvents.filter(e => e.start.startsWith(dateStr));
                     const listEl = document.getElementById('eventList');
-                    listEl.innerHTML = dayEvents.length ? "" : "<p class='text-center text-slate-400 py-10'>일정이 없습니다.</p>";
+                    listEl.innerHTML = dayEvents.length ? "" : "<p class='text-slate-400 py-10 text-center font-medium'>일정이 없습니다.</p>";
                     
                     dayEvents.forEach(ev => {
                         const item = document.createElement('div');
-                        item.className = "p-4 bg-slate-50 rounded-2xl mb-2 cursor-pointer";
-                        item.innerHTML = `<h4 class="font-bold text-slate-800">${ev.title}</h4>`;
-                        item.onclick = () => {
-                            if(!document.body.classList.contains('admin-mode')) return;
-                            document.getElementById('finalDeleteBtn').onclick = async () => { await deleteDoc(doc(db, "events", ev.id)); closeModal('confirmDeleteModal'); closeModal('viewModal'); }; 
-                            openModal('confirmDeleteModal');
-                        };
+                        item.className = "event-item p-4 bg-slate-50 rounded-2xl mb-2 hover:shadow-md transition-all cursor-pointer";
+                        const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
+                        const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
+                        const descHtml = ev.description ? `<div class="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600 whitespace-pre-wrap">${ev.description}</div>` : "";
+                        const imgHtml = ev.imageUrl ? `
+                            <div class="event-image-container" onclick="event.stopPropagation()">
+                                <img src="${ev.imageUrl}" class="event-display-img" loading="lazy">
+                                <button onclick="downloadImage('${ev.imageUrl}', '${ev.rawTitle || ev.title}')" class="download-btn">📥 이미지 저장하기</button>
+                            </div>` : "";
+                        
+                        item.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1 pr-2">
+                                    <h4 class="text-lg font-bold text-slate-800 leading-tight">${ev.rawTitle || ev.title}</h4>
+                                    <p class="text-xs font-semibold text-slate-400 mt-1 tracking-wider">${displayTime}</p>
+                                </div>
+                                <span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span>
+                            </div>
+                            ${descHtml}${imgHtml}
+                        `;
+                        item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
+                        item.oncontextmenu = (e) => { e.preventDefault(); prepareEdit(ev); };
+                        let itemTimer;
+                        item.ontouchstart = () => { itemTimer = setTimeout(() => prepareEdit(ev), 600); };
+                        item.ontouchend = () => clearTimeout(itemTimer);
                         listEl.appendChild(item);
                     });
                     openModal('viewModal');
@@ -284,6 +334,25 @@
             });
             calendar.render();
 
+            const triggerAddModal = (dateStr) => {
+                if(!document.body.classList.contains('admin-mode')) return;
+                document.getElementById('eventDate').value = dateStr;
+                openModal('addModal');
+            };
+
+            calendarEl.addEventListener('contextmenu', (e) => {
+                if(!document.body.classList.contains('admin-mode')) return;
+                const dayEl = e.target.closest('.fc-daygrid-day');
+                if (dayEl) { e.preventDefault(); triggerAddModal(dayEl.getAttribute('data-date')); }
+            });
+
+            calendarEl.addEventListener('touchstart', (e) => {
+                const dayEl = e.target.closest('.fc-daygrid-day');
+                if (dayEl) { longPressTimer = setTimeout(() => { isLongPress = true; triggerAddModal(dayEl.getAttribute('data-date')); }, 600); }
+            }, { passive: true });
+
+            calendarEl.addEventListener('touchend', () => { clearTimeout(longPressTimer); if (isLongPress) setTimeout(() => { isLongPress = false; }, 100); });
+            
             onSnapshot(eventCol, (snapshot) => { 
                 allEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 calendar.removeAllEvents();
