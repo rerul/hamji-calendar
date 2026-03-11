@@ -24,9 +24,14 @@
         @keyframes modal-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .whitespace-pre-wrap { white-space: pre-wrap; word-break: break-all; }
 
-        /* 수정된 파일 정보 표시 스타일 */
+        /* 파일 정보 표시 스타일 */
         #fileInfoContainer { display: none; margin-top: 8px; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; align-items: center; justify-content: space-between; }
-        .event-image { width: 100%; border-radius: 16px; margin-top: 12px; object-fit: contain; max-height: 300px; border: 1px solid #f1f5f9; }
+        
+        /* 이미지 확대 모달 전용 스타일 */
+        #imageFullModal { background: rgba(0, 0, 0, 0.9); display: none; position: fixed; z-index: 20000; left: 0; top: 0; width: 100%; height: 100%; justify-content: center; items-center; }
+        .full-img-container { position: relative; width: 90%; max-width: 800px; max-height: 85vh; display: flex; justify-content: center; }
+        #fullImage { width: 100%; height: auto; max-height: 85vh; object-fit: contain; border-radius: 8px; }
+        .close-img-btn { position: absolute; top: -40px; right: 0; background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; display: flex; items-center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 pb-20">
@@ -70,10 +75,17 @@
         </div>
     </div><div class="mt-6 flex gap-2">
         <button onclick="closeModal('addModal')" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold text-slate-500">취소</button>
-        <button id="saveEventBtn" onclick="handleSaveEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-blue-100">
+        <button id="saveEventBtn" onclick="handleSaveEvent()" class="flex-2 bg-blue-600 text-white p-3 rounded-xl font-bold">
             <span id="btnText">일정 저장</span>
         </button>
     </div></div></div>
+
+    <div id="imageFullModal" onclick="closeImageModal()">
+        <div class="full-img-container" onclick="event.stopPropagation()">
+            <button class="close-img-btn" onclick="closeImageModal()">✕</button>
+            <img id="fullImage" src="">
+        </div>
+    </div>
 
     <div id="editRangeModal" class="modal"><div class="modal-content"><h2 id="editSubjectTitle" class="text-xl font-black text-slate-900 mb-4 tracking-tight">과목명</h2><textarea id="rangeInput" class="w-full h-48 p-4 rounded-xl border border-slate-200 outline-none focus:border-blue-500 whitespace-pre-wrap leading-relaxed"></textarea><div class="mt-6 flex gap-2"><button onclick="closeModal('editRangeModal')" class="flex-1 bg-slate-100 p-4 rounded-xl font-bold">취소</button><button id="saveRangeBtn" class="flex-2 bg-blue-600 text-white p-4 rounded-xl font-bold">저장</button></div></div></div>
     <div id="viewRangeModal" class="modal"><div class="modal-content"><button onclick="closeModal('viewRangeModal')" class="absolute top-4 right-4 p-2 text-slate-400 text-2xl">✕</button><h2 id="targetSubjectName" class="text-2xl font-black text-slate-900 mb-6">과목명</h2><div id="rangeDisplay" class="bg-slate-50 p-6 rounded-2xl min-h-[150px] whitespace-pre-wrap leading-relaxed text-slate-700 font-medium"></div></div></div>
@@ -115,7 +127,15 @@
             } 
         };
 
-        // 파일 선택 시 텍스트로 정보만 표시
+        // 이미지 확대 모달 제어
+        window.showImageFull = (url) => {
+            document.getElementById('fullImage').src = url;
+            document.getElementById('imageFullModal').style.display = 'flex';
+        };
+        window.closeImageModal = () => {
+            document.getElementById('imageFullModal').style.display = 'none';
+        };
+
         window.handleFileSelect = (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -218,8 +238,8 @@
             
             if(ev.imageUrl) {
                 currentImageUrl = ev.imageUrl;
-                document.getElementById('fileName').innerText = "기존 이미지 유지됨";
-                document.getElementById('fileSize').innerText = "서버 저장됨 • 사진 있음";
+                document.getElementById('fileName').innerText = "서버 저장됨 (기존 이미지)";
+                document.getElementById('fileSize').innerText = "사진 보존됨 • 수정 가능";
                 document.getElementById('fileInfoContainer').style.display = 'flex';
             }
             toggleTimeInput();
@@ -228,32 +248,31 @@
 
         window.handleSaveEvent = async () => { 
             const title = document.getElementById('eventTitle').value; 
-            const type = document.getElementById('eventType').value; 
             const date = document.getElementById('eventDate').value; 
             if(!title || !date) return; 
 
             const btn = document.getElementById('saveEventBtn');
             const btnText = document.getElementById('btnText');
             btn.disabled = true;
-            btnText.innerText = "업로드 중...";
+            btnText.innerText = "처리 중...";
 
             try {
                 let imageUrl = currentImageUrl;
                 if(selectedFile) { imageUrl = await uploadToCloudinary(selectedFile); }
 
                 let eventData = { 
-                    rawTitle: title, title: title, start: date, allDay: type !== "2", 
-                    type, time: document.getElementById('eventTime').value || "", 
+                    rawTitle: title, title: title, start: date, allDay: document.getElementById('eventType').value !== "2", 
+                    type: document.getElementById('eventType').value, time: document.getElementById('eventTime').value || "", 
                     description: document.getElementById('eventDescription').value || "",
                     imageUrl: imageUrl || "",
-                    backgroundColor: type === "2" ? "#ef4444" : "#3b82f6", textColor: "#ffffff", borderColor: 'transparent' 
+                    backgroundColor: document.getElementById('eventType').value === "2" ? "#ef4444" : "#3b82f6", textColor: "#ffffff", borderColor: 'transparent' 
                 }; 
-                if(type === "2" && eventData.time) eventData.start = `${date}T${eventData.time}:00`; 
+                if(eventData.type === "2" && eventData.time) eventData.start = `${date}T${eventData.time}:00`; 
 
                 if (currentEditId) { await updateDoc(doc(db, "events", currentEditId), eventData); }
                 else { await addDoc(eventCol, eventData); }
                 closeModal('addModal'); closeModal('viewModal');
-            } catch (e) { alert("저장 실패"); }
+            } catch (e) { alert("오류 발생"); }
             finally { btn.disabled = false; btnText.innerText = "일정 저장"; }
         };
 
@@ -280,7 +299,13 @@
                         const tag = ev.type === "2" ? "🔴 마감" : "🔵 행사";
                         const displayTime = (ev.type === "2" && ev.time) ? `~${ev.time}` : "종일";
                         const descHtml = ev.description ? `<div class="mt-3 pt-3 border-t border-slate-200 text-sm text-slate-600 whitespace-pre-wrap">${ev.description}</div>` : "";
-                        const imgHtml = ev.imageUrl ? `<img src="${ev.imageUrl}" class="event-image" loading="lazy">` : "";
+                        
+                        // [수정사항] 이미지가 있을 때만 버튼 표시
+                        const imgBtnHtml = ev.imageUrl ? `
+                            <button onclick="event.stopPropagation(); showImageFull('${ev.imageUrl}')" 
+                                    class="mt-4 w-full py-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 border border-blue-100">
+                                📸 첨부 이미지 보기
+                            </button>` : "";
                         
                         item.innerHTML = `
                             <div class="flex justify-between items-start">
@@ -291,7 +316,7 @@
                                 <span class="shrink-0 text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-100 shadow-sm">${tag}</span>
                             </div>
                             ${descHtml}
-                            ${imgHtml}
+                            ${imgBtnHtml}
                         `;
                         item.onclick = () => requestDelete(ev.id, ev.rawTitle || ev.title);
                         item.oncontextmenu = (e) => { e.preventDefault(); prepareEdit(ev); };
